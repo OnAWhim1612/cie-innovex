@@ -10,7 +10,7 @@ class Player(pg.sprite.Sprite):
     def __init__(self, game, x, y):
         self.game = game
         self._layer = PLAYER_LAYER
-        self.groups = self.game.all_sprites
+        self.groups = self.game.all_sprites, self.game.player
         pg.sprite.Sprite.__init__(self, self.groups)
 
         self.x = x * tile_size
@@ -30,12 +30,14 @@ class Player(pg.sprite.Sprite):
         self.image = pg.Surface([self.width,self.height])
         self.image.blit(image_load, (0,0))
         self.image.set_colorkey(white)
-
+        self.font = pygame.font.Font('Roboto-Regular.ttf', 32)
         self.rect = self.image.get_rect()
         self.rect.x = self.x
         self.rect.y = self.y
+        self.welcome_timer = 0
 
-        self.ser = serial.Serial('COM3', 9600)
+
+        self.display_welcome = False
 
     def update(self):
         self.move()
@@ -48,7 +50,6 @@ class Player(pg.sprite.Sprite):
 
         self.x_change = 0
         self.y_change = 0
-        self.update_joystick()
 
 
     def move(self):
@@ -112,6 +113,7 @@ class Player(pg.sprite.Sprite):
                     for sprite in self.game.all_sprites:
                         sprite.rect.y-= player_speed
 
+
     def collide_thing(self):
         hits = pg.sprite.spritecollide(self, self.game.thing, False)
         if hits:
@@ -132,82 +134,6 @@ class Player(pg.sprite.Sprite):
             self.image = pg.image.load("img/rover.png")
             self.image.set_colorkey(white)
 
-    def update_joystick(self):
-        hits = pg.sprite.spritecollide(self, self.game.obs, False)
-        try:
-            data = self.ser.readline().decode().strip()
-            parts = data.split(',')
-            x_value = float(parts[0])
-            y_value = float(parts[1])
-        except ValueError:
-            print("joystick error")
-
-        x_value = float(parts[0])
-        y_value = float(parts[1])
-
-        if x_value > 500 and x_value < 525:
-            if y_value >525:
-                for sprite in self.game.all_sprites:
-                    if not hits:
-                        sprite.rect.y -= player_speed
-                self.y_change += player_speed
-                self.facing = 'down'
-            elif y_value < 500:
-                for sprite in self.game.all_sprites:
-                    if not hits:
-                        sprite.rect.y += player_speed
-                self.y_change -= player_speed
-                self.facing = 'up'
-        elif x_value>525:
-            for sprite in self.game.all_sprites:
-                if not hits:
-                    sprite.rect.x -= player_speed
-            self.x_change += player_speed
-            self.facing = 'right'
-        elif x_value<500:
-            for sprite in self.game.all_sprites:
-                if not hits:
-                    sprite.rect.x += player_speed
-            self.x_change -= player_speed
-            self.facing = 'left'
-        # Define joystick sensitivity and deadzone
-        # joystick_sensitivity = 20
-        # joystick_deadzone = 10
-        #
-        # # Check joystick input for x-axis
-        # if abs(x_value - 512) > joystick_deadzone:
-        #     if x_value > 512 + joystick_sensitivity:
-        #         for sprite in self.game.all_sprites:
-        #             if not hits:
-        #                 sprite.rect.x -= player_speed
-        #         self.x_change += player_speed  # Adjust the speed as needed
-        #         self.facing = 'right'
-        #         print('right')
-        #     elif x_value < 512 - joystick_sensitivity:
-        #         for sprite in self.game.all_sprites:
-        #             if not hits:
-        #                 sprite.rect.x += player_speed
-        #         self.x_change -= player_speed  # Adjust the speed as needed
-        #         self.facing = 'left'
-        #         print('left')
-        #
-        # # Check joystick input for y-axis
-        # if x_value > 500 and x_value < 525:
-        #     if y_value > 512 + joystick_sensitivity:
-        #         for sprite in self.game.all_sprites:
-        #             if not hits:
-        #                 sprite.rect.y -= player_speed
-        #         self.y_change += player_speed  # Adjust the speed as needed
-        #         self.facing = 'down'
-        #         print('down')
-        #     elif y_value < 512 - joystick_sensitivity:
-        #         for sprite in self.game.all_sprites:
-        #             if not hits:
-        #                 sprite.rect.y += player_speed
-        #         self.y_change -= player_speed  # Adjust the speed as needed
-        #         self.facing = 'up'
-        #         print('up')
-        #
 
 
 class thing(pg.sprite.Sprite):
@@ -229,7 +155,7 @@ class thing(pg.sprite.Sprite):
 
         self.facing = random.choice(['left', 'right', 'up', 'down'])
         self.movement_loop = 0
-        self.travel = random.randint(10, 16)
+        self.travel = random.randint(7, 13)
 
         self.image = pg.Surface([self.width, self.height])
         self.image.blit(image_load, (0, 0))
@@ -346,5 +272,38 @@ class button:
                 return True
             return False
         return False
+
+class Quest(pg.sprite.Sprite):
+    def __init__(self, game, x, y):
+        self.game = game
+        self._layer = BLOCK_LAYER
+        self.groups = self.game.all_sprites, self.game.q
+        pg.sprite.Sprite.__init__(self, self.groups)
+        self.q = q
+
+        self.x = x * tile_size
+        self.y = y * tile_size
+        self.width = tile_size
+        self.height = tile_size
+        images = random.choice(['img/q1.png', 'img/q2.png', 'img/q3.png'])
+        image_load = pg.image.load(images)
+        self.image = pg.Surface([self.width, self.height])
+        self.image.blit(image_load, (0, 0))
+        self.image.set_colorkey(white)
+
+
+        self.rect = self.image.get_rect()
+        self.rect.x = self.x
+        self.rect.y = self.y
+
+    def update(self):
+        self.collide()
+
+    def collide(self):
+        hits = pg.sprite.spritecollide(self, self.game.player, False)
+        if hits:
+            self.kill()
+            self.game.q_count += 1
+            self.game.los_i += 1
 
 
