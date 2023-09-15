@@ -10,7 +10,7 @@ class Player(pg.sprite.Sprite):
     def __init__(self, game, x, y):
         self.game = game
         self._layer = PLAYER_LAYER
-        self.groups = self.game.all_sprites, self.game.player
+        self.groups = self.game.all_sprites
         pg.sprite.Sprite.__init__(self, self.groups)
 
         self.x = x * tile_size
@@ -30,14 +30,12 @@ class Player(pg.sprite.Sprite):
         self.image = pg.Surface([self.width,self.height])
         self.image.blit(image_load, (0,0))
         self.image.set_colorkey(white)
-        self.font = pygame.font.Font('Roboto-Regular.ttf', 32)
+
         self.rect = self.image.get_rect()
         self.rect.x = self.x
         self.rect.y = self.y
-        self.welcome_timer = 0
 
         self.ser = serial.Serial('COM3', 9600)
-        self.display_welcome = False
 
     def update(self):
         self.move()
@@ -51,6 +49,7 @@ class Player(pg.sprite.Sprite):
         self.x_change = 0
         self.y_change = 0
         self.update_joystick()
+
 
     def move(self):
         keys = pygame.key.get_pressed()
@@ -113,7 +112,6 @@ class Player(pg.sprite.Sprite):
                     for sprite in self.game.all_sprites:
                         sprite.rect.y-= player_speed
 
-
     def collide_thing(self):
         hits = pg.sprite.spritecollide(self, self.game.thing, False)
         if hits:
@@ -136,9 +134,6 @@ class Player(pg.sprite.Sprite):
 
     def update_joystick(self):
         hits = pg.sprite.spritecollide(self, self.game.obs, False)
-        mouse_x, mouse_y = pg.mouse.get_pos()
-        grid_width = WIN_WIDTH // 3
-        grid_height = WIN_HEIGHT // 3
         try:
             data = self.ser.readline().decode().strip()
             parts = data.split(',')
@@ -169,7 +164,7 @@ class Player(pg.sprite.Sprite):
                     sprite.rect.x -= player_speed
             self.x_change += player_speed
             self.facing = 'right'
-        elif x_value<500 or mouse_x < grid_width:
+        elif x_value<500:
             for sprite in self.game.all_sprites:
                 if not hits:
                     sprite.rect.x += player_speed
@@ -234,7 +229,7 @@ class thing(pg.sprite.Sprite):
 
         self.facing = random.choice(['left', 'right', 'up', 'down'])
         self.movement_loop = 0
-        self.travel = random.randint(7, 13)
+        self.travel = random.randint(10, 16)
 
         self.image = pg.Surface([self.width, self.height])
         self.image.blit(image_load, (0, 0))
@@ -351,38 +346,5 @@ class button:
                 return True
             return False
         return False
-
-class Quest(pg.sprite.Sprite):
-    def __init__(self, game, x, y):
-        self.game = game
-        self._layer = BLOCK_LAYER
-        self.groups = self.game.all_sprites, self.game.q
-        pg.sprite.Sprite.__init__(self, self.groups)
-        self.q = q
-
-        self.x = x * tile_size
-        self.y = y * tile_size
-        self.width = tile_size
-        self.height = tile_size
-        images = random.choice(['img/q1.png', 'img/q2.png', 'img/q3.png'])
-        image_load = pg.image.load(images)
-        self.image = pg.Surface([self.width, self.height])
-        self.image.blit(image_load, (0, 0))
-        self.image.set_colorkey(white)
-
-
-        self.rect = self.image.get_rect()
-        self.rect.x = self.x
-        self.rect.y = self.y
-
-    def update(self):
-        self.collide()
-
-    def collide(self):
-        hits = pg.sprite.spritecollide(self, self.game.player, False)
-        if hits:
-            self.kill()
-            self.game.q_count += 1
-            self.game.los_i += 1
 
 
