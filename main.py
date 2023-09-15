@@ -16,7 +16,7 @@ class game:
         self.running = True
         self.intro_background = pg.image.load('img/bg.jpg')
         self.go = pg.image.load("img/go.jpg")
-        self.timer = 700
+        self.timer = 1000
         self.tfont = pg.font.Font('Roboto-Regular.ttf', 20)
         self.q_count = 0
         self.los_i = 0
